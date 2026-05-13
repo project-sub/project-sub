@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+
+  front-end:
+    build: ./front-end
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./front-end:/app
+      - /app/node_modules
+    command:
+      npm run dev -- --host
+    depends_on:
+      - back-end
+  back-end:
+    build: ./back-end
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./back-end:/app
+    depends_on:
+      - postgres
+      - ollama
+  postgres:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: ai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+volumes:
+  postgres_data:
+  ollama_data:
