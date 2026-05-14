@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-multipart
+pymupdf
+pdfplumber
+pytesseract
+pillow
+tensorflow
+paddleocr
+paddlepaddle
+opencv-python
+# backend에서 ollama 호출
+requests
+# backend에서 postgreSQL 연결
+sqlalchemy
+psycopg2-binary
