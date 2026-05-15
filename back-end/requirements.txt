@@ -7,10 +7,15 @@ pytesseract
 pillow
 tensorflow
 paddleocr
-paddlepaddle
+paddlepaddle==3.1.1
 opencv-python
 # backend에서 ollama 호출
 requests
 # backend에서 postgreSQL 연결
 sqlalchemy
 psycopg2-binary
+olefile
+openpyxl
+PyPDF2
+python-pptx
+python-docx

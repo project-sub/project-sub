@@ -40,6 +40,19 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+
+  ollama-init:
+    image: ollama/ollama
+    depends_on:
+      - ollama
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      ollama pull gemma3:4b
+      "
+    volumes:
+      - ollama_data:/root/.ollama
+      
 volumes:
   postgres_data:
   ollama_data:

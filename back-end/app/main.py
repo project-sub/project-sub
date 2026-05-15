@@ -1,8 +1,7 @@
-from fastapi import FastAPI
-from app import db
+import uvicorn
 
-app = FastAPI()
+def main():
+    uvicorn.run(app="app:app", port=8000, reload=True)
 
-@app.get("/")
-def root():
-    return {"message":"backend running"}
+if __name__ == "__main__":
+    main()
