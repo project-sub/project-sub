@@ -1,0 +1,6 @@
+/* src/styles/tailwind.css */
+@import "tailwindcss";
+
+/* Tailwind v4는 @import "tailwindcss"; 한 줄만으로 
+  프로젝트 내의 모든 tsx, html 파일을 자동으로 감시하고 빌드합니다.
+*/
