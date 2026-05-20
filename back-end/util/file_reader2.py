@@ -653,39 +653,50 @@ def process_pdf(pdf_bytes: bytes, zoom=2):
         # =========================
         document.append(page_text)
 
+
+        # =========================
+        # 9. 반환 형식 변환
+        # =========================
+        doc_text_result = ""
+
+        for i in range(len(document)) :
+            doc_text_result += "\n--- " + str(i + 1) + " Page ---\n"
+            doc_text_result += document[i].replace(',', '')
+
+
     doc.close()
 
-    return document
+    return doc_text_result
 
 
-def document_to_text(document):
-    """
-    document 배열을 요약 모델에 넣기 좋은 문자열로 변환한다.
+# def document_to_text(document):
+#     """
+#     document 배열을 요약 모델에 넣기 좋은 문자열로 변환한다.
 
-    document 구조:
-    [
-        {
-            "page": 1,
-            "items": [...],
-            "text": "..."
-        }
-    ]
+#     document 구조:
+#     [
+#         {
+#             "page": 1,
+#             "items": [...],
+#             "text": "..."
+#         }
+#     ]
 
-    반환:
-    [페이지 1]
-    ...
+#     반환:
+#     [페이지 1]
+#     ...
     
-    [페이지 2]
-    ...
-    """
+#     [페이지 2]
+#     ...
+#     """
 
-    lines = []
+#     lines = []
 
-    for page in document:
-        page_number = page.get("page")
-        text = page.get("text", "")
+#     for page in document:
+#         page_number = page.get("page")
+#         text = page.get("text", "")
 
-        lines.append(f"[페이지 {page_number}]")
-        lines.append(text)
+#         lines.append(f"[페이지 {page_number}]")
+#         lines.append(text)
 
-    return "\n\n".join(lines).strip()
+#     return "\n\n".join(lines).strip()

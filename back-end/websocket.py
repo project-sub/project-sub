@@ -44,6 +44,8 @@ async def process_document(file_id, file_bytes ,db:Session):
             file_bytes
         )
 
+        print(extracted_text[:300])
+
         await manager.send(file_id,{
             "percent": 40,
             "state" : "PROGRESS",
@@ -57,7 +59,7 @@ async def process_document(file_id, file_bytes ,db:Session):
 
 
         # llm 
-        llm_result= await run_in_threadpool(subtract_text,extracted_text[0]) # 문자열로 들어옴
+        llm_result= await run_in_threadpool(subtract_text,extracted_text) # 문자열로 들어옴
         llm_result = json.loads(llm_result)
         category=llm_result["category"]
         summary = llm_result["summary"]

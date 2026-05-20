@@ -18,67 +18,13 @@ def subtract_text(input):
 
         [OUTPUT FORMAT EXAMPLE]
         {
-        "category": "CATEGORY_LIST 내부 값",
-        "summary": "문서 요약"
+            "category": "CATEGORY_LIST 내부 값",
+            "summary": "문서 요약"
         }
 
         [INPUT]
         """
     )
-
-    categories = [
-        "기술/개발문서",
-        "법률/판례",
-        "기획안/제안서",
-        "경영/비즈니스",
-        "교육/학술",
-        "행정/공공문서",
-        "생활/가정",
-        "금융/회계",
-        "의료/건강",
-        "기타/미분류",
-    ]
-
-    category_text = "\n".join([f"- {c}" for c in categories])
-
-    prom = f"""
-    너는 문서 분류 및 요약 엔진이다.
-
-    반드시 아래 규칙을 지켜라.
-
-    [작업]
-    INPUT 문서를 읽고 category와 summary를 생성한다.
-
-    [category 선택 규칙]
-    category는 반드시 CATEGORY_LIST 중 정확히 하나를 그대로 복사한다.
-    CATEGORY_LIST에 없는 값은 절대 출력하지 않는다.
-    category를 번역하거나, 줄이거나, 띄어쓰기를 바꾸거나, 새로 만들지 않는다.
-    판단이 애매하면 "기타/미분류"를 선택한다.
-
-    [CATEGORY_LIST]
-    {category_text}
-
-    [summary 작성 규칙]
-    summary는 INPUT에 있는 내용만 근거로 작성한다.
-    INPUT에 없는 정보, 추측, 외부 지식은 절대 추가하지 않는다.
-    summary는 한국어로 작성한다.
-    summary는 2문장 이상 5문장 이하로 작성한다.
-    문서의 핵심 주제, 목적, 주요 내용을 포함한다.
-    원문 의미를 과장하거나 바꾸지 않는다.
-
-    [출력 규칙]
-    반드시 JSON 객체만 출력한다.
-    JSON 밖에 설명, 문장, 코드블록, 마크다운을 출력하지 않는다.
-    키는 반드시 category와 summary만 사용한다.
-
-    [출력 예시]
-    {{
-    "category": "교육/학술",
-    "summary": "문서 요약 내용"
-    }}
-
-    [INPUT]
-    """
 
     prompt = base_prompt + input
 
@@ -158,8 +104,9 @@ def subtract_text(input):
         "options": {
             "temperature": 0.1,
             "top_p": 0.2,
-            "num_predict" : 256
-        }
+            "num_ctx": 16384,   # 모델의 작업 메모리 크기
+            "num_predict": 2048 # 답변 최대 길이 제한
+        } 
     }
 
     print("요약 시작")
@@ -175,20 +122,33 @@ def subtract_text(input):
         return f"Error: {str(e)}"
 
 
+
+'''
+로컬 테스트용
+'''
 # import os
 
+# if __name__ == "__main__":
 
-# filename = "생성형 AI 보안.pdf"
+#     startTime = time.localtime()
 
-# pdf_path = os.path.join("File", filename)
+#     filename = "(주)더다올디앤씨_회사소개서 (1).pdf"
+#     pdf_path = os.path.join("File", filename)
     
-# with open(pdf_path, "rb") as f:
-#     pdf_bytes = f.read()
-    
-# # 텍스트 추출 함수 호출
-# text_result = process_pdf(pdf_bytes)
+#     with open(pdf_path, "rb") as f:
+#         pdf_bytes = f.read()
 
-# # ollama 요약 함수 호출
-# substract_result = subtract_text(text_result)
+#     result = process_pdf(pdf_bytes)
 
-# print(substract_result)
+#     endTime = time.localtime()
+
+#     print("\n====================")
+#     print("FINAL RESULT")
+#     print("====================\n")
+#     # print(result)
+
+#     print(endTime - startTime)
+
+'''
+로컬 테스트용 END
+'''
