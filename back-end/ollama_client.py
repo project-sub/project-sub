@@ -52,6 +52,8 @@ def subtract_text(input):
                         "기타/미분류"
                     ],
                     "description": """
+                        Do not classify based on simple keyword matching. Determine the category based on the actual purpose of the document.
+
                         Category meanings:
 
                         - 기술/개발문서:
@@ -93,16 +95,16 @@ def subtract_text(input):
                         - 기타/미분류:
                         document that does not clearly belong to other categories
                         """
-                        
                 },
                 "summary": {
                     "type": "string"
-                }
+                },
+                
             },
             "required": ["category", "summary"]
         },
         "options": {
-            "temperature": 0.1,
+            "temperature": 0.0,
             "top_p": 0.2,
             "num_ctx": 16384,   # 모델의 작업 메모리 크기
             "num_predict": 2048 # 답변 최대 길이 제한
