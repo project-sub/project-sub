@@ -504,7 +504,7 @@ def blocks_to_text(blocks):
             continue
 
         if block.get("source") == "ocr":
-            texts.append(f"[이미지 OCR] {text}")
+            texts.append(f"{text}")
         else:
             texts.append(text)
 
