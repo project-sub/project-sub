@@ -1,20 +1,23 @@
 import requests
-# from hwpText import get_hwp_text
-# from Pdf_nativeText_OCR import process_pdf
 
 def subtract_text(input):
     base_prompt = (
         """
         [ROLE]
         너는 문서 자동 분류 및 요약 전용 AI이다.
-        반드시 아래 규칙만 따른다.
+        각 페이지마다 핵심 내용을 간추리고, 페이지별 요약들을 기반으로 문서 전체의 category와 summary를 생성하라.
 
-        [RULES]
-        - summary는 반드시 INPUT 내용만 기반으로 작성한다.
-        - INPUT에 없는 추측, 외부지식, 상상, 보완 설명을 추가하지 않는다.
-        - category는 가장 적절한 category를 하나만 선택한다.
-        - 적절한 category가 없을 경우 "기타/미분류"를 선택한다.
-        - 출력은 반드시 JSON 객체 하나만 생성한다.
+        Focus on:
+        - what the document mainly explains
+        - what occupies the largest portion of the document
+        - the primary business or administrative purpose
+
+        Ignore:
+        - login screens
+        - navigation menus
+        - button labels
+        - repeated OCR artifacts
+        - sample UI data
 
         [OUTPUT FORMAT EXAMPLE]
         {
@@ -110,11 +113,29 @@ def subtract_text(input):
             "required": ["category", "summary"]
         },
         "options": {
-            "temperature": 0.05,
-            "top_p": 0.2,
-            "num_ctx": 2048,   # 모델의 작업 메모리 크기
-            "num_predict": 512 # 답변 최대 길이 제한
-        } 
+
+            "num_ctx": 4096,        # 모델이 한 번에 참고할 최대 토큰 길이 (GPU VRAM 사용량에 직접 영향)
+            "num_batch": 512,       # GPU에서 병렬 처리할 토큰 배치 크기 (GPU 사용률 상승, 속도 개선)
+
+            "temperature": 0.1,     # 낮을수록 안정적/요약형 출력
+            "top_k": 20,            # 상위 K개 후보만 선택(단어의 의미) -> 너무 높으면 헛소리 증가/ 낮으면 문장반복 증가
+            "top_p": 0.9,           # 확률 누적 기반 sampling 제한 -> 확률높은 후보부터 확률을 더해 멈추는 목표값 설정
+
+            "repeat_penalty": 1.0, # 반복 문장 억제 (요약 품질 유지)
+            "num_predict": 1024,    # 생성할 최대 토큰 수 (응답 길이 제한, GPU 사용 시간 증가 요소)
+
+
+            # "num_thread": 8,      # CPU inference 스레드 수 (GPU 사용 시 영향 거의 없음) → GPU 안 잡히는 환경에서만 중요
+            
+            # GPU 세팅
+            "num_gpu": 999,         # 가능한 모든 layer GPU offload
+
+            "f16_kv": True,         # cache를 FP16으로 저장 → VRAM 절약 + 속도 증가
+            "low_vram": False,      # GPU VRAM 부족 모드 (켜면 성능 감소 → 일반적으로 false)
+
+            "use_mmap": True,       # 모델 파일을 memory-mapped 방식으로 로딩 (로드 속도 개선)
+            "use_mlock": False,     # RAM lock 여부 (GPU 환경에서는 보통 불필요)
+        }
     }
 
     print("요약 시작")
@@ -138,24 +159,18 @@ def subtract_text(input):
 
 # if __name__ == "__main__":
 
-#     startTime = time.localtime()
-
-#     filename = "(주)더다올디앤씨_회사소개서 (1).pdf"
-#     pdf_path = os.path.join("File", filename)
+#     filename = "t1.txt"
+#     file_path = os.path.join("util/File", filename)
     
-#     with open(pdf_path, "rb") as f:
-#         pdf_bytes = f.read()
+#     with open(file_path, "r") as f:
+#         file_text = f.read()
 
-#     result = process_pdf(pdf_bytes)
-
-#     endTime = time.localtime()
+#     result = subtract_text(file_text)
 
 #     print("\n====================")
 #     print("FINAL RESULT")
 #     print("====================\n")
-#     # print(result)
-
-#     print(endTime - startTime)
+#     print(result)
 
 '''
 로컬 테스트용 END
