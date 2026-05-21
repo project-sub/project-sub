@@ -1,84 +1,37 @@
 import requests
-# from hwpText import get_hwp_text
-# from Pdf_nativeText_OCR import process_pdf
 
-def subtract_text(input):
+def subtract_text(input,length = "SHORT"):
+
+    minLength = {"SHORT" : 100, "MIDDLE" : 400, "LONG" : 800}
+    maxLength = {"SHORT" : 200, "MIDDLE" : 500, "LONG" : 900}
+    TextLength = {"SHORT" : 250, "MIDDLE" : 700, "LONG" : 1500} # 한글이 아닌 byte 기준
+
     base_prompt = (
         """
         [ROLE]
-        너는 문서 자동 분류 및 요약 전용 AI이다.
-        반드시 아래 규칙만 따른다.
+        You are an AI for document summarization and classification.
 
-        [RULES]
-        - summary는 반드시 INPUT 내용만 기반으로 작성한다.
-        - INPUT에 없는 추측, 외부지식, 상상, 보완 설명을 추가하지 않는다.
-        - category는 가장 적절한 category를 하나만 선택한다.
-        - 적절한 category가 없을 경우 "기타/미분류"를 선택한다.
-        - 출력은 반드시 JSON 객체 하나만 생성한다.
+        [GLOBAL RULE]
+        - Ignore OCR noise, broken text, duplicated text, symbols, menus, headers, and meaningless fragments.
+        - Understand the document by its overall meaning and purpose.
+        - ALL outputs MUST be written in Korean.
 
-        [OUTPUT FORMAT EXAMPLE]
-        {
-        "category": "CATEGORY_LIST 내부 값",
-        "summary": "문서 요약"
-        }
+        [TASK]
 
-        [INPUT]
+        Step 1. Understand Document
+        - Determine:
+        - document purpose
+        - document role
+        - intended usage
+        - Do NOT rely on keyword frequency or technical terms alone.
+
+        Step 2. Summarization
+
+        Step 3. Classification
+       
+
         """
     )
-
-    categories = [
-        "기술/개발문서",
-        "법률/판례",
-        "기획안/제안서",
-        "경영/비즈니스",
-        "교육/학술",
-        "행정/공공문서",
-        "생활/가정",
-        "금융/회계",
-        "의료/건강",
-        "기타/미분류",
-    ]
-
-    category_text = "\n".join([f"- {c}" for c in categories])
-
-    prom = f"""
-    너는 문서 분류 및 요약 엔진이다.
-
-    반드시 아래 규칙을 지켜라.
-
-    [작업]
-    INPUT 문서를 읽고 category와 summary를 생성한다.
-
-    [category 선택 규칙]
-    category는 반드시 CATEGORY_LIST 중 정확히 하나를 그대로 복사한다.
-    CATEGORY_LIST에 없는 값은 절대 출력하지 않는다.
-    category를 번역하거나, 줄이거나, 띄어쓰기를 바꾸거나, 새로 만들지 않는다.
-    판단이 애매하면 "기타/미분류"를 선택한다.
-
-    [CATEGORY_LIST]
-    {category_text}
-
-    [summary 작성 규칙]
-    summary는 INPUT에 있는 내용만 근거로 작성한다.
-    INPUT에 없는 정보, 추측, 외부 지식은 절대 추가하지 않는다.
-    summary는 한국어로 작성한다.
-    summary는 2문장 이상 5문장 이하로 작성한다.
-    문서의 핵심 주제, 목적, 주요 내용을 포함한다.
-    원문 의미를 과장하거나 바꾸지 않는다.
-
-    [출력 규칙]
-    반드시 JSON 객체만 출력한다.
-    JSON 밖에 설명, 문장, 코드블록, 마크다운을 출력하지 않는다.
-    키는 반드시 category와 summary만 사용한다.
-
-    [출력 예시]
-    {{
-    "category": "교육/학술",
-    "summary": "문서 요약 내용"
-    }}
-
-    [INPUT]
-    """
 
     prompt = base_prompt + input
 
@@ -91,6 +44,39 @@ def subtract_text(input):
         "format": {
             "type": "object",
             "properties": {
+                "summary": {
+                    "type": "string",
+                    "description": f"""
+                    [Summary Rule]
+                    - Summarize using the document understanding from Step 1.
+                    - Focus on the document's main purpose and role.
+                    - Prefer semantic meaning over repeated keywords.
+                    - Do NOT over-focus on technical terms.
+
+                    [Summary Detail Level]
+                    level : {length}
+
+                    - SHORT:
+                    Aggressively compress the content.
+                    Keep only the core purpose and main topic.
+
+                    - MIDDLE:
+                    Include the document purpose, major contents, and important context.
+
+                    - LONG:
+                    Avoid excessive compression.
+                    Preserve as much meaningful information as possible.
+                    Include important details and major activities.
+                    """
+                },
+                "classification_basis" : {
+                    "type":"string",
+                    "description": """
+                         [Classification Basis Rule]
+                        - Describe the document ROLE, not the document subject.
+                        - Focus on what the document is used for.
+                    """
+                },
                 "category": {
                     "type": "string",
                     "enum": [
@@ -106,59 +92,86 @@ def subtract_text(input):
                         "기타/미분류"
                     ],
                     "description": """
-                        Category meanings:
+                        [Classification Rule]
+                        - The category must be consistent with classification_basis.
+                        - Select the category based on the document ROLE, not the industry or topic.
 
+                        [Category meanings]
                         - 기술/개발문서:
-                        software, programming, API, system architecture, database,
-                        AI, machine learning, engineering, technical documentation
+                        Documents mainly about software, systems, APIs,
+                        engineering, implementation, architecture,
+                        technical operations, or development processes.
 
                         - 법률/판례:
-                        law, contract, lawsuit, regulation, policy, legal interpretation,
-                        court decision, legal document
+                        Documents related to laws, regulations, contracts,
+                        lawsuits, legal analysis, court decisions,
+                        or official legal interpretation.
 
                         - 기획안/제안서:
-                        proposal, project plan, business proposal, service planning,
-                        strategy proposal, presentation planning
+                        Documents proposing a project, service, strategy,
+                        business idea, future plan, or execution proposal.
 
                         - 경영/비즈니스:
-                        business, management, marketing, sales, market analysis,
-                        corporate strategy, business report
+                        Documents focused on company operations, business strategy,
+                        market analysis, service introduction, management,
+                        or corporate information.
 
                         - 교육/학술:
-                        education, lecture, textbook, research paper,
-                        academic article, study material, academic report
+                        Documents intended for education, research,
+                        academic study, lectures, textbooks,
+                        or scholarly analysis.
 
                         - 행정/공공문서:
-                        government document, public institution, official notice,
-                        administrative report, civil service document, policy document
+                        Documents issued by government or public institutions,
+                        including reports, notices, policies,
+                        administrative procedures, or public services.
 
                         - 생활/가정:
-                        daily life, home, lifestyle, cooking, hobby,
-                        travel, consumer information
+                        Documents related to daily life, lifestyle,
+                        hobbies, travel, home, food,
+                        or consumer-oriented information.
 
                         - 금융/회계:
-                        finance, accounting, tax, investment, insurance,
-                        asset management, financial statement
+                        Documents about finance, accounting, tax,
+                        investment, insurance, budgeting,
+                        or financial reporting.
 
                         - 의료/건강:
-                        medical record, healthcare, diagnosis, hospital,
-                        medicine, health management
+                        Documents related to healthcare, medicine,
+                        diagnosis, hospitals, treatment,
+                        or health management.
 
                         - 기타/미분류:
-                        document that does not clearly belong to other categories
+                        Documents that do not clearly fit
+                        into the categories above.
                         """
-                        
                 },
-                "summary": {
-                    "type": "string"
-                }
             },
-            "required": ["category", "summary"]
+            "required": ["summary", "classification_basis", "category"]
         },
         "options": {
-            "temperature": 0.1,
-            "top_p": 0.2,
-            "num_predict" : 256
+
+            "num_ctx": 16384,        # 모델이 한 번에 참고할 최대 토큰 길이 (GPU VRAM 사용량에 직접 영향)
+            "num_batch": 512,       # GPU에서 병렬 처리할 토큰 배치 크기 (GPU 사용률 상승, 속도 개선)
+
+            "temperature": 0.1,     # 낮을수록 안정적/요약형 출력
+            "top_k": 20,            # 상위 K개 후보만 선택(단어의 의미) -> 너무 높으면 헛소리 증가/ 낮으면 문장반복 증가
+            "top_p": 0.8,           # 확률 누적 기반 sampling 제한 -> 확률높은 후보부터 확률을 더해 멈추는 목표값 설정
+
+            "repeat_penalty": 1.0,  # 반복 문장 억제 (요약 품질 유지)
+            "num_predict": 2048,    # 생성할 최대 토큰 수 (응답 길이 제한, GPU 사용 시간 증가 요소)
+
+
+            # "num_thread": 8,      # CPU inference 스레드 수 (GPU 사용 시 영향 거의 없음) → GPU 안 잡히는 환경에서만 중요
+            
+            # GPU 세팅
+            "num_gpu": 999,         # 가능한 모든 layer GPU offload
+
+            "f16_kv": True,         # cache를 FP16으로 저장 → VRAM 절약 + 속도 증가
+            "low_vram": False,      # GPU VRAM 부족 모드 (켜면 성능 감소 → 일반적으로 false)
+
+            "use_mmap": True,       # 모델 파일을 memory-mapped 방식으로 로딩 (로드 속도 개선)
+            "use_mlock": False,     # RAM lock 여부 (GPU 환경에서는 보통 불필요)
         }
     }
 
@@ -175,20 +188,27 @@ def subtract_text(input):
         return f"Error: {str(e)}"
 
 
+
+'''
+로컬 테스트용
+'''
 # import os
 
+# if __name__ == "__main__":
 
-# filename = "생성형 AI 보안.pdf"
-
-# pdf_path = os.path.join("File", filename)
+#     filename = "t1.txt"
+#     file_path = os.path.join("util/File", filename)
     
-# with open(pdf_path, "rb") as f:
-#     pdf_bytes = f.read()
-    
-# # 텍스트 추출 함수 호출
-# text_result = process_pdf(pdf_bytes)
+#     with open(file_path, "r") as f:
+#         file_text = f.read()
 
-# # ollama 요약 함수 호출
-# substract_result = subtract_text(text_result)
+#     result = subtract_text(file_text, "SHORT")
 
-# print(substract_result)
+#     print("\n====================")
+#     print("FINAL RESULT")
+#     print("====================\n")
+#     print(result)
+
+'''
+로컬 테스트용 END
+'''

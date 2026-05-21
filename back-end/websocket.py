@@ -44,6 +44,8 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
             file_bytes
         )
 
+        print(extracted_text[:300])
+
         await manager.send(file_id,{
             "percent": 40,
             "state" : "PROGRESS",
