@@ -58,7 +58,11 @@ async def upload_document(
     file_bytes :bytes= await file.read()
 
      # 파일 바이트를 메모리에 임시저장
-    temp_files[str(file_id)] = file_bytes
+    temp_files[str(file_id)] = {
+        "bytes" : file_bytes,
+        "length" : length
+    }
+
 
     # 파일 검증
     if len(file_bytes)> MAX_SIZE:
@@ -119,14 +123,21 @@ async def websocket_endpoint(
     await manager.connect(file_id, websocket)
     with Session() as db:
         try:
-            file_bytes = temp_files.get(str(file_id), None) # 임시 저장된 파일 바이트 꺼내오기
+            temp_files_data = temp_files.get(str(file_id), None) # 임시 저장된 파일 바이트 꺼내오기
+            if temp_files_data is not None:
+                file_bytes = temp_files_data["bytes"]
+                check_length = temp_files_data["length"]
+            else: 
+                file_bytes = None
+                check_length = None
+
 
             if not file_bytes:
                 await manager.send(file_id, {"state":"FAILURE", "error": "파일을 찾을 수 없습니당!"})
                 await websocket.close()
                 return
             #process_document로 바로 전달
-            asyncio.create_task(process_document(file_id, file_bytes, db))
+            asyncio.create_task(process_document(file_id, file_bytes, check_length, db))
             
             
             while True:

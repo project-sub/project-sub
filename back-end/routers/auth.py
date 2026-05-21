@@ -36,7 +36,7 @@ def register(user_data: UserCreate, db:Session = Depends(get_db)):
 
     return {"message": "회원가입 완료"}
 
-@router.post("/login", response_model=LoginResponseSchema) # request: Request => 세션 접근할떄 필요
+@router.post("/login") # request: Request => 세션 접근할떄 필요
 def login(user_data:UserCreate, request:Request, db:Session=Depends(get_db)):
     user =db.query(UserInfo).filter(UserInfo.email == user_data.email).first()
 
@@ -50,7 +50,7 @@ def login(user_data:UserCreate, request:Request, db:Session=Depends(get_db)):
     request.session["user_id"] = str(user.user_id)
     request.session["email"] = user.email
     print(f"로그인할때 세션 :{request}{request.session.items()}")
-    return {"message": "로그인 성공", "user_name": user.email}
+    return {"message": "로그인 성공"}
 
 @router.post("/logout")
 def logout(request:Request):
