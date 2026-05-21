@@ -52,7 +52,13 @@ def subtract_text(input):
                         "기타/미분류"
                     ],
                     "description": """
-                        Do not classify based on simple keyword matching. Determine the category based on the actual purpose of the document.
+
+                        Classify based on the document's PRIMARY PURPOSE and MAIN DOMAIN.
+
+                        Do NOT classify using isolated keywords.
+                        Focus on the overall purpose of the document.
+
+                        Classify by the MAIN BUSINESS DOMAIN, not by technologies used in the document.
 
                         Category meanings:
 
@@ -104,10 +110,10 @@ def subtract_text(input):
             "required": ["category", "summary"]
         },
         "options": {
-            "temperature": 0.0,
+            "temperature": 0.05,
             "top_p": 0.2,
-            "num_ctx": 16384,   # 모델의 작업 메모리 크기
-            "num_predict": 2048 # 답변 최대 길이 제한
+            "num_ctx": 2048,   # 모델의 작업 메모리 크기
+            "num_predict": 512 # 답변 최대 길이 제한
         } 
     }
 
