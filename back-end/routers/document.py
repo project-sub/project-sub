@@ -1,21 +1,20 @@
 import os
 import uuid
 import json
-from fastapi import APIRouter, WebSocketDisconnect, WebSocket, UploadFile, File, Form, Response, Depends, HTTPException, Request
+from typing import List, Optional
+from fastapi import APIRouter, WebSocketDisconnect, WebSocket, UploadFile, File, Form, Response, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 import urllib.parse
-from db import get_db, engine, styleEnum, DocLength, Base, Session, DocumentRecord
+from db import get_db, engine, styleEnum, DocLength, Base, Session, DocumentRecord, ItemSearch
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.utils import simpleSplit
 import asyncio
 from websocket import process_document, manager
-import pymupdf
-from ollama_client import subtract_text
-from util.file_reader2 import process_pdf
-from starlette.concurrency import run_in_threadpool
+import unicodedata 
 
 
 # 파일 임시 저장소 
@@ -29,7 +28,6 @@ router= APIRouter()
 # 인증 로직
 def get_current_user(request:Request):
     user_id = request.session.get("user_id")
-    print(request.session.items())
 
     if not user_id:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
@@ -58,7 +56,6 @@ async def upload_document(
 
     file_id = uuid.uuid4()
     file_bytes :bytes= await file.read()
-    print(f"웹소켓 들어가기지전에 바이트 확인 . 1 ${type(file_bytes)} ")
 
      # 파일 바이트를 메모리에 임시저장
     temp_files[str(file_id)] = file_bytes
@@ -68,7 +65,6 @@ async def upload_document(
         raise HTTPException(status_code=422, detail="파일 용량이 10MB를 초과했습니다.")
     
     await file.seek(0)
-    print("잘들어가지나2")
     ALLOWED_MIME_TYPES = {
     '.pdf': 'application/pdf',
     '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -149,14 +145,29 @@ async def get_user_history(
     db: Session = Depends(get_db)
 ):
     user_id =request.session.get("user_id")
-    print(request.session.items())
-    print(f"로그인 정보 : {user_id, DocumentRecord.user_id}")
 
     if not user_id:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
     history =db.query(DocumentRecord).filter(DocumentRecord.user_id==user_id).all()
-    
     return history
+
+# history로 불러온 것 삭제 기능
+@router.delete("/delete/{id}", status_code=204)
+async def delete_item(request:Request,id:str, db:Session=Depends(get_db)):
+    user_id =request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    db_file = db.query(DocumentRecord).filter(DocumentRecord.user_id==user_id, DocumentRecord.id == id).first()
+    if not db_file:
+        raise HTTPException(
+            status_code = 404,
+            detail = "삭제할 파일을 찾을 수 없습니다."
+        )
+    
+    db.delete(db_file)
+    db.commit()
+
+    return None
 
 # 결과 파일 다운로드 API (PDF/TXT 선택)
 @router.get("/download/{file_id}")
@@ -181,14 +192,21 @@ async def download_file(file_id:str, format:str, db: Session = Depends(get_db)):
         pdfmetrics.registerFont(TTFont("NanumGothic", FONT_PATH))
         text_object.setFont("NanumGothic",10)
 
-        for line in content.split('\n'):
-            text_object.textLine(line) # textLine 한줄 쓰고 다음줄로 가자
-        
-        p.drawText(text_object) # 텍스트를 도화지에 인쇄
-        p.showPage() # 현재 페이지 끝
-        p.save() # 파일 저장
 
-        file_content = buffer.getvalue() #바구니를 복사, 데이터 가져옴
+        usable_width = 594 - 80 # A4 너비 - 양옆 너비
+
+
+        for line in content.split('\n'):
+            # 자동 줄바꿈
+            text_line = simpleSplit(line, "NanumGothic",10, usable_width)
+            for text in text_line:
+                text_object.textLine(text) 
+        
+        p.drawText(text_object) 
+        p.showPage() 
+        p.save() 
+
+        file_content = buffer.getvalue()
         buffer.close()
         media_type = "application/pdf"
         file_name = f"{urllib.parse.quote(record.file_name)}.pdf"
@@ -203,3 +221,29 @@ async def download_file(file_id:str, format:str, db: Session = Depends(get_db)):
     )
 
 
+@router.get('/search', response_model = List[ItemSearch])
+async def search_file(
+    request : Request,
+    keyword: Optional[str] = Query(None, min_length=2), # 아무것도 없어도 되며, 최소 2글자는 적어야 한다.
+    db:Session = Depends(get_db)
+):
+    
+    if not hasattr(request, "session") or request.session is None:
+        print("에러: 세션 미들웨어가 설정되지 않았거나 세션이 없습니다.")
+        raise HTTPException(status_code=401, detail="세션 정보가 없습니다. 다시 로그인 해주세요.")
+
+    user_id = request.session.get("user_id")
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다.")
+    
+    clean_text = unicodedata.normalize('NFC', keyword)
+    results = []
+    all_records = db.query(DocumentRecord).filter(DocumentRecord.user_id == uuid.UUID(user_id)).all()
+    if not keyword:
+        return all_records
+    for doc in all_records:
+        normalized_file_name = unicodedata.normalize('NFC', doc.file_name)
+        if clean_text in normalized_file_name:
+            results.append(doc)
+    return results

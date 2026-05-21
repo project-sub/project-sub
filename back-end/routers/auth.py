@@ -2,18 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from db import UserInfo, get_db,Base,engine
+from db import UserInfo, get_db, Base,engine, LoginResponseSchema, UserCreate
 import bcrypt
 
 
 router = APIRouter()
 
 Base.metadata.create_all(bind=engine)
-
-# 스키마
-class UserCreate(BaseModel):
-    email:str
-    password:str
 
 # 유틸
 def hash_password(password:str): # 암호화된 문자열을 반환, db에 암호화 값만 저장
@@ -41,7 +36,7 @@ def register(user_data: UserCreate, db:Session = Depends(get_db)):
 
     return {"message": "회원가입 완료"}
 
-@router.post("/login") # request: Request => 세션 접근할떄 필요
+@router.post("/login", response_model=LoginResponseSchema) # request: Request => 세션 접근할떄 필요
 def login(user_data:UserCreate, request:Request, db:Session=Depends(get_db)):
     user =db.query(UserInfo).filter(UserInfo.email == user_data.email).first()
 
@@ -55,7 +50,7 @@ def login(user_data:UserCreate, request:Request, db:Session=Depends(get_db)):
     request.session["user_id"] = str(user.user_id)
     request.session["email"] = user.email
     print(f"로그인할때 세션 :{request}{request.session.items()}")
-    return {"message": "로그인 성공"}
+    return {"message": "로그인 성공", "user_name": user.email}
 
 @router.post("/logout")
 def logout(request:Request):
