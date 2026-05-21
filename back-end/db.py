@@ -44,7 +44,7 @@ class DocCategory(enum.Enum):
     ETC = "기타/미분류"
 
 # 2. 스키마
-class DocLength(str, Enum): # str, enum
+class DocLength(str, Enum):
     SHORT= "SHORT" 
     MIDDLE= "MIDDLE"
     LONG= "LONG"

@@ -57,7 +57,7 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
 
 
         # llm 
-        llm_result= await run_in_threadpool(subtract_text,extracted_text[0],check_length) # 문자열로 들어옴
+        llm_result= await run_in_threadpool(subtract_text,extracted_text,check_length) # 문자열로 들어옴
         llm_result = json.loads(llm_result)
         category=llm_result["category"]
         summary = llm_result["summary"]

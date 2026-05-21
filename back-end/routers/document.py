@@ -39,7 +39,7 @@ def get_current_user(request:Request):
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    length: str = Form(DocLength.MIDDLE), # SHORT, MIDDLE, LONG
+    summary_length: str = Form(DocLength.MIDDLE), # SHORT, MIDDLE, LONG
     style: str = Form(styleEnum.STYLE1),
     db: Session = Depends(get_db),
     current_user_id: uuid.UUID = Depends(get_current_user) # 인증 로직 가정
@@ -60,7 +60,7 @@ async def upload_document(
      # 파일 바이트를 메모리에 임시저장
     temp_files[str(file_id)] = {
         "bytes" : file_bytes,
-        "length" : length
+        "summary_length" : summary_length
     }
 
 
@@ -126,7 +126,7 @@ async def websocket_endpoint(
             temp_files_data = temp_files.get(str(file_id), None) # 임시 저장된 파일 바이트 꺼내오기
             if temp_files_data is not None:
                 file_bytes = temp_files_data["bytes"]
-                check_length = temp_files_data["length"]
+                check_length = temp_files_data["summary_length"]
             else: 
                 file_bytes = None
                 check_length = None
