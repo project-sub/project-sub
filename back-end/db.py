@@ -7,7 +7,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 import uuid
+from uuid import UUID as PyUUID
 from enum import Enum as PyEnum
+from pydantic import BaseModel
 
 
 load_dotenv()
@@ -41,7 +43,8 @@ class DocCategory(enum.Enum):
     MEDICAL = "의료/건강"
     ETC = "기타/미분류"
 
-class DocLength(str, Enum):
+# 2. 스키마
+class DocLength(str, Enum): # str, enum
     SHORT= "SHORT" 
     MIDDLE= "MIDDLE"
     LONG= "LONG"
@@ -49,6 +52,23 @@ class DocLength(str, Enum):
 class styleEnum(str, Enum):
     STYLE1='1'
     STYLE2='2'    
+
+class ItemSearch(BaseModel):
+    id : PyUUID # UUID로 설정 넣어놨으니
+    file_name : str
+
+    class Config: # orm_mode: db안에서 알아서 json 데이터로 자동 반환
+        from_attributes = True
+
+# 로그인, 회원가입 요청 스키마
+class UserCreate(BaseModel):
+    email:str
+    password:str
+
+# 로그인 응답 스키마
+class LoginResponseSchema(BaseModel):
+    massage:str
+    email:str
 
 # 2. 사용자 정보 테이블 모델
 class UserInfo(Base):

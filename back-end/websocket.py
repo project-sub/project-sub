@@ -29,7 +29,7 @@ manager = ConnectionManager()
 # 앱 전체에서 하나의 manager 공유 
 
 # 진행상태 전달 함수
-async def process_document(file_id, file_bytes ,db:Session):
+async def process_document(file_id, file_bytes, check_length,db:Session):
     record = None
     record = db.query(DocumentRecord).filter(DocumentRecord.file_id == file_id).first()
     try:
@@ -57,7 +57,7 @@ async def process_document(file_id, file_bytes ,db:Session):
 
 
         # llm 
-        llm_result= await run_in_threadpool(subtract_text,extracted_text[0]) # 문자열로 들어옴
+        llm_result= await run_in_threadpool(subtract_text,extracted_text[0],check_length) # 문자열로 들어옴
         llm_result = json.loads(llm_result)
         category=llm_result["category"]
         summary = llm_result["summary"]

@@ -2,18 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from db import UserInfo, get_db,Base,engine
+from db import UserInfo, get_db, Base,engine, LoginResponseSchema, UserCreate
 import bcrypt
 
 
 router = APIRouter()
 
 Base.metadata.create_all(bind=engine)
-
-# 스키마
-class UserCreate(BaseModel):
-    email:str
-    password:str
 
 # 유틸
 def hash_password(password:str): # 암호화된 문자열을 반환, db에 암호화 값만 저장
