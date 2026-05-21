@@ -30,3 +30,5 @@ passlib==1.7.4
 itsdangerous
 reportlab==4.5.1
 fpdf2==2.8.7
+typing
+pydantic
