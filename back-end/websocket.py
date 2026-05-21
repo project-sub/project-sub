@@ -1,7 +1,7 @@
 from fastapi import WebSocket
 from starlette.concurrency import run_in_threadpool
 from db import DocumentRecord,Session, DocCategory
-import asyncio # async/await 사용하는 라이브러리
+import asyncio 
 from datetime import datetime
 from util.file_reader2 import process_pdf
 from ollama_client import subtract_text
