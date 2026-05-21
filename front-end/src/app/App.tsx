@@ -9,7 +9,7 @@ import { HistorySidebar } from './components/HistorySidebar';
 import { LoginScreen } from './components/LoginScreen';
 import { UserMenu } from './components/UserMenu';
 import type { User } from '../types/user.types';
-import { requestSummary } from '../api/summary';
+import { fetchHistory, requestSummary, deleteHistory } from '../api/summary';
 
 import type {
   Message,
@@ -17,27 +17,67 @@ import type {
   HistoryItem,
 } from '../types';
 
+// 1. 요약 데이터 객체 타입 정의
+interface SummaryData {
+  fileID: string;
+  fileName: string;
+  summary: string | null;
+  category: string | null;
+}
+
+// 2. 소켓 객체 타입 정의
+interface TaskStatus {
+  percent: number,
+  state : string
+}
+
+// 3. websocket에서 응답 티입 정의
+interface WebhookMessage{
+  percent:number,
+  state: "PENDING"|"SUCCESS"|"FAILURE"|"PROGRESS"|string,
+  extracted_text?:string | null,
+  summary?: string | null,
+  category?: string | null
+}
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [showTypewriter, setShowTypewriter] = useState<boolean>(false);
   const [showLevelSelector, setShowLevelSelector] = useState<boolean>(false);
-  const [summaryText, setSummaryText] = useState<string>('');
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    fileID: '',
+    fileName: '',
+    summary: null,
+    category: null
+  });
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [currentLevel, setCurrentLevel] = useState<SummaryLevel>('normal');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isProcess, setIsProcess]= useState<TaskStatus>({percent:0, state:""}); // 로딩상태
+  const [extractedText, setExtractedText] = useState<string | null>(null); // ocr 이후 추출된 텍스트
+  const isFetched = useRef<boolean>(false);
+
+  const wsRef = useRef<WebSocket|null>(null)
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isProcessing, showTypewriter, showLevelSelector]);
 
-  const handleLogin = useCallback((user: User): void => {
+  const handleLogin = useCallback(async (user: User): Promise<void> => {
     setUser(user);
-  }, []);
+
+    try {
+      const historyData = await fetchHistory();
+      setHistory(historyData);
+    } catch (e) {
+      console.error("이력 조회 실패:", e);
+    }
+  }, [setUser, setHistory]);
 
   const handleLogout = useCallback((): void => {
     setUser(null);
@@ -103,10 +143,63 @@ function App() {
       setIsProcessing(true);
 
       try {
-        const summary = await requestSummary(currentFile, level);
+          const res = await requestSummary(currentFile, level);
 
-        setSummaryText(summary);
-        setShowTypewriter(true);
+          // 상태에 저장 (즉시 다운로드하지 않음)
+          setSummaryData({
+              fileID: res.fileId,
+              fileName :res.fileName,
+              summary:null,
+              category:null
+          });
+
+          const ws = new WebSocket(`ws://localhost:8000/ws/${res.fileId}`)
+
+          wsRef.current = ws;
+
+          ws.onerror = (event: Event) => {
+            console.error('웹소켓 에러:', event);
+            setIsProcessing(false);
+            alert("웹소켓 연결 오류가 발생했습니다.");
+          };
+
+          ws.onclose = (event: CloseEvent) => {
+            console.log('웹소켓 종료:', event.code, event.reason);
+          };
+
+          ws.onopen = (event:Event) => {
+              console.log('$$웹소켓 연결$$');
+          }
+
+          ws.onmessage = (event:MessageEvent) => {
+            const data = JSON.parse(event.data) as WebhookMessage; //서버에서 메시지 올때마다 실행. json 문자열을 딕셔너리로 변환
+            console.log(`data : ${data}, extractedText:${extractedText}`);
+            setIsProcess({
+              percent : data.percent,
+              state : data.state
+            })
+
+            if(data.extracted_text) {
+              setExtractedText(data.extracted_text);
+            }
+
+            if(data.state === "SUCCESS") {
+              setSummaryData(prev=>({
+                ...prev,
+                summary:data.summary ?? null,
+                category:data.category ?? null
+              }));
+              setIsProcessing(false); // 로딩바 숨김
+              setShowTypewriter(true);
+              ws.close();
+            }
+
+            if(data.state === "FAILURE") {
+              setIsProcessing(false);
+              alert("파일 처리 중에 오류가 발생했습니다.1.")
+              ws.close()
+            }
+          }
       } catch (error) {
         console.error(error);
 
@@ -118,18 +211,7 @@ function App() {
             timestamp: new Date(),
           },
         ]);
-      } finally {
-        setIsProcessing(true);
       }
-      // Simulate processing delay
-{/*
-      setTimeout(() => {
-        setIsProcessing(false);
-        const summary = generateSummary(currentFile?.name || '문서', level);
-        setSummaryText(summary);
-        setShowTypewriter(true);
-      }, 2000);
-*/}
     },
     [currentFile]
   );
@@ -140,7 +222,7 @@ function App() {
       ...messages,
       {
         role: 'assistant',
-        content: summaryText,
+        content: summaryData.summary ?? '',
         showMenu: true,
         timestamp: new Date(),
       },
@@ -153,13 +235,13 @@ function App() {
       fileName: currentFile?.name || '문서',
       timestamp: new Date(),
       level: currentLevel,
-      preview: summaryText.slice(0, 100) + '...',
+      preview: (summaryData.summary ?? '').slice(0, 100) + '...',
       messages: newMessages,
     };
 
     setHistory((prev) => [historyItem, ...prev]);
     setCurrentHistoryId(historyItem.id);
-  }, [messages, summaryText, currentFile, currentLevel]);
+  }, [messages, summaryData.summary ?? '', currentFile, currentLevel]);
 
   const handleSelectHistory = useCallback(
     (id: string): void => {
@@ -176,10 +258,16 @@ function App() {
   );
 
   const handleDeleteHistory = useCallback(
-    (id: string): void => {
-      setHistory((prev) => prev.filter((h) => h.id !== id));
-      if (currentHistoryId === id) {
-        handleNewChat();
+    async (id: string): Promise<void> => {
+      try {
+        await deleteHistory(id)
+        setHistory((prev) => prev.filter((h) => h.id !== id));
+        if (currentHistoryId === id) {
+          handleNewChat();
+        }
+      } catch (error) {
+        console.error("삭제 처리 실패:", error);
+        alert("이력 삭제에 실패했습니다. 서버 상태를 확인해주세요.");
       }
     },
     [currentHistoryId]
@@ -275,7 +363,7 @@ function App() {
 
                 {showTypewriter && (
                   <TypewriterText
-                    content={summaryText}
+                    content={summaryData.summary ?? ''}
                     onComplete={handleTypingComplete}
                   />
                 )}

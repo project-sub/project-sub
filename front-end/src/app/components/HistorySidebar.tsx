@@ -4,10 +4,10 @@ import { useState } from 'react';
 
 interface HistoryItem {
   id: string;
-  fileName: string;
-  timestamp: Date;
+  file_name: string;
+  process_at: Date;
   level: 'brief' | 'normal' | 'detailed';
-  preview: string;
+  summary: string;
 }
 
 interface HistorySidebarProps {
@@ -39,20 +39,23 @@ export function HistorySidebar({
     detailed: 'bg-purple-100 text-purple-700',
   };
 
-  const formatDate = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const formatDate = (dateInput: any): string => {
+    // 1. 데이터가 유효하지 않거나 누락된 경우 빈 문자열이나 기본 텍스트 반환 (방어 코드)
+    if (!dateInput) return '-'; 
 
-    if (days === 0) {
-      return '오늘';
-    } else if (days === 1) {
-      return '어제';
-    } else if (days < 7) {
-      return `${days}일 전`;
-    } else {
-      return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-    }
+    // 2. 만약 string(문자열) 형태로 들어왔다면 new Date()를 통해 진짜 Date 객체로 변환
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+
+    // 3. 변환된 Date 객체가 유효한 날짜인지 검증 (Invalid Date 예외 처리)
+    if (isNaN(date.getTime())) return '-';
+
+    // 4. 기존 포맷팅 로직 처리 (예시 코드로 적어두었으니 기존 포맷에 맞게 조절하세요)
+    return new Intl.DateTimeFormat('ko-KR', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   };
 
   return (
@@ -116,14 +119,14 @@ export function HistorySidebar({
                         <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-sm truncate text-white">
-                            {item.fileName}
+                            {item.file_name}
                           </h3>
                         </div>
                       </div>
 
                       <div className="ml-7 space-y-1">
                         <p className="text-xs text-gray-400 line-clamp-2">
-                          {item.preview}
+                          {item.summary}
                         </p>
                         <div className="flex items-center gap-2">
                           <span
@@ -135,7 +138,7 @@ export function HistorySidebar({
                           </span>
                           <div className="flex items-center gap-1 text-xs text-gray-500">
                             <Clock className="w-3 h-3" />
-                            <span>{formatDate(item.timestamp)}</span>
+                            <span>{formatDate(item.process_at)}</span>
                           </div>
                         </div>
                       </div>

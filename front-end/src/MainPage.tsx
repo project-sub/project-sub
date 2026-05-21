@@ -25,6 +25,7 @@ interface WebhookMessage{
   category?: string | null
 }
 
+type HistoryData = string;
 
 function MainPage() {
   // server url
@@ -43,6 +44,7 @@ function MainPage() {
   const [extractedText, setExtractedText] = useState<string | null>(null); // ocr 이후 추출된 텍스트
 
   const wsRef = useRef<WebSocket|null>(null)
+  const isFetched = useRef<boolean>(false);
 
   // 3. 파일 업로드 핸들러 타입 지정
   const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,9 +161,12 @@ function MainPage() {
   };
 
   useEffect(() => {
+    if (isFetched.current) return;
+    isFetched.current = true;
+
     const fetchHistory = async (): Promise<void> => {
       try {
-        await axios.get("{server_url}/history", {
+        await axios.get<HistoryData>(`${server_url}/history`, {
           withCredentials: true,
         });
       } catch (e) {
