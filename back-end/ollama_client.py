@@ -1,31 +1,35 @@
 import requests
 
-def subtract_text(input):
+def subtract_text(input,length = "SHORT"):
+
+    minLength = {"SHORT" : 100, "MIDDLE" : 400, "LONG" : 800}
+    maxLength = {"SHORT" : 200, "MIDDLE" : 500, "LONG" : 900}
+    TextLength = {"SHORT" : 250, "MIDDLE" : 700, "LONG" : 1500} # 한글이 아닌 byte 기준
+
     base_prompt = (
         """
         [ROLE]
-        너는 문서 자동 분류 및 요약 전용 AI이다.
-        각 페이지마다 핵심 내용을 간추리고, 페이지별 요약들을 기반으로 문서 전체의 category와 summary를 생성하라.
+        You are an AI for document summarization and classification.
 
-        Focus on:
-        - what the document mainly explains
-        - what occupies the largest portion of the document
-        - the primary business or administrative purpose
+        [GLOBAL RULE]
+        - Ignore OCR noise, broken text, duplicated text, symbols, menus, headers, and meaningless fragments.
+        - Understand the document by its overall meaning and purpose.
+        - ALL outputs MUST be written in Korean.
 
-        Ignore:
-        - login screens
-        - navigation menus
-        - button labels
-        - repeated OCR artifacts
-        - sample UI data
+        [TASK]
 
-        [OUTPUT FORMAT EXAMPLE]
-        {
-            "category": "CATEGORY_LIST 내부 값",
-            "summary": "문서 요약"
-        }
+        Step 1. Understand Document
+        - Determine:
+        - document purpose
+        - document role
+        - intended usage
+        - Do NOT rely on keyword frequency or technical terms alone.
 
-        [INPUT]
+        Step 2. Summarization
+
+        Step 3. Classification
+       
+
         """
     )
 
@@ -40,6 +44,39 @@ def subtract_text(input):
         "format": {
             "type": "object",
             "properties": {
+                "summary": {
+                    "type": "string",
+                    "description": f"""
+                    [Summary Rule]
+                    - Summarize using the document understanding from Step 1.
+                    - Focus on the document's main purpose and role.
+                    - Prefer semantic meaning over repeated keywords.
+                    - Do NOT over-focus on technical terms.
+
+                    [Summary Detail Level]
+                    level : {length}
+
+                    - SHORT:
+                    Aggressively compress the content.
+                    Keep only the core purpose and main topic.
+
+                    - MIDDLE:
+                    Include the document purpose, major contents, and important context.
+
+                    - LONG:
+                    Avoid excessive compression.
+                    Preserve as much meaningful information as possible.
+                    Include important details and major activities.
+                    """
+                },
+                "classification_basis" : {
+                    "type":"string",
+                    "description": """
+                         [Classification Basis Rule]
+                        - Describe the document ROLE, not the document subject.
+                        - Focus on what the document is used for.
+                    """
+                },
                 "category": {
                     "type": "string",
                     "enum": [
@@ -55,74 +92,74 @@ def subtract_text(input):
                         "기타/미분류"
                     ],
                     "description": """
+                        [Classification Rule]
+                        - The category must be consistent with classification_basis.
+                        - Select the category based on the document ROLE, not the industry or topic.
 
-                        Classify based on the document's PRIMARY PURPOSE and MAIN DOMAIN.
-
-                        Do NOT classify using isolated keywords.
-                        Focus on the overall purpose of the document.
-
-                        Classify by the MAIN BUSINESS DOMAIN, not by technologies used in the document.
-
-                        Category meanings:
-
+                        [Category meanings]
                         - 기술/개발문서:
-                        software, programming, API, system architecture, database,
-                        AI, machine learning, engineering, technical documentation
+                        Documents mainly about software, systems, APIs,
+                        engineering, implementation, architecture,
+                        technical operations, or development processes.
 
                         - 법률/판례:
-                        law, contract, lawsuit, regulation, policy, legal interpretation,
-                        court decision, legal document
+                        Documents related to laws, regulations, contracts,
+                        lawsuits, legal analysis, court decisions,
+                        or official legal interpretation.
 
                         - 기획안/제안서:
-                        proposal, project plan, business proposal, service planning,
-                        strategy proposal, presentation planning
+                        Documents proposing a project, service, strategy,
+                        business idea, future plan, or execution proposal.
 
                         - 경영/비즈니스:
-                        business, management, marketing, sales, market analysis,
-                        corporate strategy, business report
+                        Documents focused on company operations, business strategy,
+                        market analysis, service introduction, management,
+                        or corporate information.
 
                         - 교육/학술:
-                        education, lecture, textbook, research paper,
-                        academic article, study material, academic report
+                        Documents intended for education, research,
+                        academic study, lectures, textbooks,
+                        or scholarly analysis.
 
                         - 행정/공공문서:
-                        government document, public institution, official notice,
-                        administrative report, civil service document, policy document
+                        Documents issued by government or public institutions,
+                        including reports, notices, policies,
+                        administrative procedures, or public services.
 
                         - 생활/가정:
-                        daily life, home, lifestyle, cooking, hobby,
-                        travel, consumer information
+                        Documents related to daily life, lifestyle,
+                        hobbies, travel, home, food,
+                        or consumer-oriented information.
 
                         - 금융/회계:
-                        finance, accounting, tax, investment, insurance,
-                        asset management, financial statement
+                        Documents about finance, accounting, tax,
+                        investment, insurance, budgeting,
+                        or financial reporting.
 
                         - 의료/건강:
-                        medical record, healthcare, diagnosis, hospital,
-                        medicine, health management
+                        Documents related to healthcare, medicine,
+                        diagnosis, hospitals, treatment,
+                        or health management.
 
                         - 기타/미분류:
-                        document that does not clearly belong to other categories
+                        Documents that do not clearly fit
+                        into the categories above.
                         """
                 },
-                "summary": {
-                    "type": "string"
-                },
-                
             },
-            "required": ["category", "summary"]
+            "required": ["summary", "classification_basis", "category"]
         },
         "options": {
 
-            "num_ctx": 4096,        # 모델이 한 번에 참고할 최대 토큰 길이 (GPU VRAM 사용량에 직접 영향)
+            "num_ctx": 16384,        # 모델이 한 번에 참고할 최대 토큰 길이 (GPU VRAM 사용량에 직접 영향)
             "num_batch": 512,       # GPU에서 병렬 처리할 토큰 배치 크기 (GPU 사용률 상승, 속도 개선)
 
             "temperature": 0.1,     # 낮을수록 안정적/요약형 출력
             "top_k": 20,            # 상위 K개 후보만 선택(단어의 의미) -> 너무 높으면 헛소리 증가/ 낮으면 문장반복 증가
-            "top_p": 0.9,           # 확률 누적 기반 sampling 제한 -> 확률높은 후보부터 확률을 더해 멈추는 목표값 설정
+            "top_p": 0.8,           # 확률 누적 기반 sampling 제한 -> 확률높은 후보부터 확률을 더해 멈추는 목표값 설정
 
-            "repeat_penalty": 1.0, # 반복 문장 억제 (요약 품질 유지)
-            "num_predict": 1024,    # 생성할 최대 토큰 수 (응답 길이 제한, GPU 사용 시간 증가 요소)
+            "repeat_penalty": 1.0,  # 반복 문장 억제 (요약 품질 유지)
+            "num_predict": 2048,    # 생성할 최대 토큰 수 (응답 길이 제한, GPU 사용 시간 증가 요소)
 
 
             # "num_thread": 8,      # CPU inference 스레드 수 (GPU 사용 시 영향 거의 없음) → GPU 안 잡히는 환경에서만 중요
@@ -165,7 +202,7 @@ def subtract_text(input):
 #     with open(file_path, "r") as f:
 #         file_text = f.read()
 
-#     result = subtract_text(file_text)
+#     result = subtract_text(file_text, "SHORT")
 
 #     print("\n====================")
 #     print("FINAL RESULT")
