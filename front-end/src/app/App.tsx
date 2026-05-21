@@ -89,38 +89,14 @@ function App() {
     setIsProcessing(false);
     setCurrentFile(null);
   }, []);
-{/*
-  const generateSummary = (fileName: string, level: SummaryLevel): string => {
-    const timestamp = new Date().toLocaleString('ko-KR');
-
-    if (level === 'brief') {
-      return `📄 파일 분석 결과 (간략)
-
-파일명: ${fileName}
-분석 일시: ${timestamp}`
-    }
-
-    if (level === 'normal') {
-      return `📄 파일 분석 결과
-
-파일명: ${fileName}
-분석 일시: ${timestamp}`
-    }
-
-        // detailed
-    return `📄 파일 분석 결과 (상세)
-
-파일명: ${fileName}
-분석 일시: ${timestamp}`
-
-  }
-*/}
 
   const handleFileSelect = useCallback(async (file: File): Promise<void> => {
     setCurrentFile(file);
     setMessages((prev) => [
       ...prev,
       {
+        fileId: '',
+        fileName: '',
         role: 'user',
         content: `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
         showMenu: false,
@@ -206,6 +182,8 @@ function App() {
         setMessages((prev) => [
           ...prev,
           {
+            fileId: '',
+            fileName: '',
             role: 'assistant',
             content: '파일 요약 중 오류가 발생했습니다.',
             timestamp: new Date(),
@@ -221,6 +199,8 @@ function App() {
     const newMessages: Message[] = [
       ...messages,
       {
+        fileId: '',
+        fileName: '',
         role: 'assistant',
         content: summaryData.summary ?? '',
         showMenu: true,
@@ -232,10 +212,11 @@ function App() {
     // Save to history
     const historyItem: HistoryItem = {
       id: Date.now().toString(),
-      fileName: currentFile?.name || '문서',
-      timestamp: new Date(),
+      file_id: '',
+      file_name: currentFile?.name || '문서',
+      process_at: new Date(),
       level: currentLevel,
-      preview: (summaryData.summary ?? '').slice(0, 100) + '...',
+      summary: (summaryData.summary ?? '').slice(0, 100) + '...',
       messages: newMessages,
     };
 
@@ -246,8 +227,21 @@ function App() {
   const handleSelectHistory = useCallback(
     (id: string): void => {
       const item = history.find((h) => h.id === id);
+
+      const selectMessages: Message[] = [
+        ...messages,
+        {
+          fileId: item?.file_id ?? '',
+          fileName: item?.file_name ?? '',
+          role: 'assistant',
+          content: item?.summary ?? '',
+          showMenu: true,
+          timestamp: new Date(),
+        },
+      ];
+      
       if (item) {
-        setMessages(item.messages);
+        setMessages(selectMessages);
         setCurrentHistoryId(id);
         setShowTypewriter(false);
         setShowLevelSelector(false);
@@ -348,6 +342,8 @@ function App() {
               <>
                 {messages.map((message, index) => (
                   <ChatMessage
+                    fileId={message.fileId}
+                    fileName={message.fileName}
                     key={`${message.role}-${index}-${message.timestamp?.getTime()}`}
                     role={message.role}
                     content={message.content}

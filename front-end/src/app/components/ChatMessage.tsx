@@ -2,8 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { User, Sparkles, MoreVertical, Copy, Download, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { ChatMessageProps } from '../../types';
+import api from '../../api/axios'
 
 export function ChatMessage({
+  fileId,
+  fileName,
   role,
   content,
   isTyping = false,
@@ -40,20 +43,33 @@ export function ChatMessage({
     }
   };
 
-  const handleDownload = (): void => {
+  const handleDownload = async (format: 'txt' | 'pdf'): Promise<void> => {
+    // content, fileId, fileName
+
     try {
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `요약_${new Date().getTime()}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setMenuOpen(false);
+      const response = await api.get(`/download/${fileId}`, {
+        params: { format: format },
+        responseType: 'blob',
+      });
+
+      const mimeTypes: Record<string, string> = {
+        'txt': 'text/plain',
+        'pdf': 'application/pdf'
+      };
+
+      const blob = new Blob([response.data], { type: mimeTypes[format] });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `요약본_${fileName}.${format}`);
+
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
     } catch (error) {
-      console.error('Failed to download file:', error);
+      console.error("다운로드 실패:", error);
     }
   };
 
@@ -128,11 +144,18 @@ export function ChatMessage({
                   )}
                 </button>
                 <button
-                  onClick={handleDownload}
+                  onClick={() => handleDownload('txt')}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  <span>다운로드</span>
+                  <span>TXT 다운로드</span>
+                </button>
+                <button
+                  onClick={() => handleDownload('pdf')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>PDF 다운로드</span>
                 </button>
               </motion.div>
             )}
