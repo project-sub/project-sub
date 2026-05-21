@@ -6,6 +6,8 @@ import type { User, LoginFormErrors } from './user.types';
 export type MessageRole = 'user' | 'assistant';
 
 export interface Message {
+  fileId: string;
+  fileName: string;
   role: MessageRole;
   content: string;
   showMenu?: boolean;
@@ -33,10 +35,11 @@ export interface SummaryResponse {
  */
 export interface HistoryItem {
   id: string;
-  fileName: string;
-  timestamp: Date;
+  file_id: string;
+  file_name: string;
+  process_at: Date;
   level: SummaryLevel;
-  preview: string;
+  summary: string;
   messages: Message[];
 }
 
@@ -71,6 +74,8 @@ export interface AcceptedFileTypes {
  * Component Props Types
  */
 export interface ChatMessageProps {
+  fileId: string;
+  fileName: string;
   role: MessageRole;
   content: string;
   isTyping?: boolean;
