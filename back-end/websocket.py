@@ -33,6 +33,7 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
     record = None
     record = db.query(DocumentRecord).filter(DocumentRecord.file_id == file_id).first()
     try:
+
         # ocr 시작 (10%)
         await manager.send(file_id,{
             "percent": 10,
@@ -43,8 +44,6 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
             process_pdf,
             file_bytes
         )
-
-        print(extracted_text[:300])
 
         await manager.send(file_id,{
             "percent": 40,

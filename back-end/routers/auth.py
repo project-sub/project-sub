@@ -49,7 +49,6 @@ def login(user_data:UserCreate, request:Request, db:Session=Depends(get_db)):
     # 브라우저 쿠키에 세션 ID가 자동으로 담겨서 이후 요청마다 자동 첨부됨
     request.session["user_id"] = str(user.user_id)
     request.session["email"] = user.email
-    print(f"로그인할때 세션 :{request}{request.session.items()}")
     return {"message": "로그인 성공"}
 
 @router.post("/logout")
