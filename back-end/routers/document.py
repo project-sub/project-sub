@@ -39,13 +39,28 @@ def get_current_user(request:Request):
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    summary_length: str = Form(DocLength.MIDDLE), # SHORT, MIDDLE, LONG
+    # id: 'id 새로 받는다.',
+    summary_length: str = Form(...,alias="length"), # SHORT, MIDDLE, LONG
     style: str = Form(styleEnum.STYLE1),
     db: Session = Depends(get_db),
     current_user_id: uuid.UUID = Depends(get_current_user) # 인증 로직 가정
     ):
 
-    ALLOWED_EXTENSIONS = ('.pdf', '.docx', '.doc', '.hwp', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.webp')
+    # summary_length 타입 확인하기
+    allowed_lengths = [DocLength.SHORT, DocLength.MIDDLE, DocLength.LONG]
+    
+    if summary_length not in allowed_lengths:
+        raise HTTPException(
+            status_code=422, 
+            detail=f"올바르지 않은 값입니다. {allowed_lengths} 중 하나를 선택해주세요."
+        )
+
+    ALLOWED_EXTENSIONS = (
+    '.pdf', '.docx', '.doc', '.hwp', '.ppt', '.pptx', 
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', 
+    '.xlsx', '.xlsm', '.xlsb', '.xls', 
+    '.txt'
+    ) 
 
     #허용할 확장자 목록 
     if not file.filename.endswith(ALLOWED_EXTENSIONS):
@@ -56,6 +71,7 @@ async def upload_document(
 
     file_id = uuid.uuid4()
     file_bytes :bytes= await file.read()
+    id = str(uuid.uuid4())
 
      # 파일 바이트를 메모리에 임시저장
     temp_files[str(file_id)] = {
@@ -81,6 +97,11 @@ async def upload_document(
     '.png': 'image/png',
     '.gif': 'image/gif',
     '.webp': 'image/webp',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+    '.xlsb': 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+    '.xls': 'application/vnd.ms-excel',
+    '.txt': 'text/plain'
     }
     if file.content_type not in ALLOWED_MIME_TYPES.values():
         raise HTTPException(status_code=422, detail='파일 내영이 확장자와 일치하지 않습니다.')
@@ -89,7 +110,6 @@ async def upload_document(
     try:
         # 2. DOCUMENT_RECORDS 테이블에 저장
         new_record = DocumentRecord(
-            id=str(uuid.uuid4()),
             user_id=current_user_id,
             file_id=file_id,
             file_name=file.filename,
@@ -130,7 +150,6 @@ async def websocket_endpoint(
             else: 
                 file_bytes = None
                 check_length = None
-
 
             if not file_bytes:
                 await manager.send(file_id, {"state":"FAILURE", "error": "파일을 찾을 수 없습니당!"})
