@@ -15,7 +15,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 # 도커용
-DATABASE_URL = "postgresql://admin:1234@postgres:5432/ai_db"
+DATABASE_URL = os.getenv("DB_URL")
 
 
 engine = create_engine(DATABASE_URL, echo=True)
