@@ -18,12 +18,8 @@ def subtract_text(input, length = 'SHORT'):
         length,
         LENGTH_PROMPT_MAP['MIDDLE']
     )
-
-    print(f'length_prompt: {length_prompt}')
     
     base_prompt = BASE_PROMPT.format(length_prompt=length_prompt)
-
-    print('base_prompt: ', base_prompt)
 
     url = base_url
 
@@ -86,9 +82,6 @@ def subtract_text(input, length = 'SHORT'):
 
     try:
         response = requests.post(url, json=payload)
-
-        print(f'응답 상태 코드: {response.status_code}');
-        print(f'응답 본문: {response.text}');
 
         response.raise_for_status()  # 요청 오류 발생 시 예외 발생
         
