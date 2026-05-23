@@ -19,6 +19,7 @@ import type {
 
 // 1. 요약 데이터 객체 타입 정의
 interface SummaryData {
+  id: string;
   fileID: string;
   fileName: string;
   summary: string | null;
@@ -32,7 +33,7 @@ interface TaskStatus {
 }
 
 // 3. websocket에서 응답 티입 정의
-interface WebhookMessage{
+interface WebhookMessage {
   percent:number,
   state: "PENDING"|"SUCCESS"|"FAILURE"|"PROGRESS"|string,
   extracted_text?:string | null,
@@ -47,6 +48,7 @@ function App() {
   const [showTypewriter, setShowTypewriter] = useState<boolean>(false);
   const [showLevelSelector, setShowLevelSelector] = useState<boolean>(false);
   const [summaryData, setSummaryData] = useState<SummaryData>({
+    id: '',
     fileID: '',
     fileName: '',
     summary: null,
@@ -95,6 +97,7 @@ function App() {
     setMessages((prev) => [
       ...prev,
       {
+        id: 'new',
         fileId: '',
         fileName: '',
         role: 'user',
@@ -119,10 +122,11 @@ function App() {
       setIsProcessing(true);
 
       try {
-          const res = await requestSummary(currentFile, level);
+          const res = await requestSummary(messages[0].id, currentFile, level);
 
           // 상태에 저장 (즉시 다운로드하지 않음)
           setSummaryData({
+              id: res.id,
               fileID: res.fileId,
               fileName :res.fileName,
               summary:null,
@@ -182,6 +186,7 @@ function App() {
         setMessages((prev) => [
           ...prev,
           {
+            id: 'error',
             fileId: '',
             fileName: '',
             role: 'assistant',
@@ -199,8 +204,9 @@ function App() {
     const newMessages: Message[] = [
       ...messages,
       {
-        fileId: '',
-        fileName: '',
+        id: summaryData.id,
+        fileId: summaryData.fileID,
+        fileName: summaryData.fileName,
         role: 'assistant',
         content: summaryData.summary ?? '',
         showMenu: true,
@@ -211,36 +217,42 @@ function App() {
 
     // Save to history
     const historyItem: HistoryItem = {
-      id: Date.now().toString(),
-      file_id: '',
+      id: summaryData.id,
+      file_id: summaryData.fileID,
       file_name: currentFile?.name || '문서',
-      process_at: new Date(),
+      upload_at: new Date(),
       level: currentLevel,
       summary: (summaryData.summary ?? '').slice(0, 100) + '...',
       messages: newMessages,
     };
 
-    setHistory((prev) => [historyItem, ...prev]);
+    setHistory((prev) => {
+      const exists = prev.some((h)=> h.id === historyItem.id);
+      if(exists){
+        return [
+          historyItem,
+          ...prev.filter((h)=> h.id !== historyItem.id)];
+      }
+      return [historyItem, ...prev]
+    });
     setCurrentHistoryId(historyItem.id);
   }, [messages, summaryData.summary ?? '', currentFile, currentLevel]);
 
-  const handleSelectHistory = useCallback(
-    (id: string): void => {
-      const item = history.find((h) => h.id === id);
+const handleSelectHistory = useCallback(
+    async (id: string): Promise<void> => {
+      const details = await fetchHistory(id);
 
-      const selectMessages: Message[] = [
-        ...messages,
-        {
-          fileId: item?.file_id ?? '',
-          fileName: item?.file_name ?? '',
-          role: 'assistant',
-          content: item?.summary ?? '',
-          showMenu: true,
-          timestamp: new Date(),
-        },
-      ];
-      
-      if (item) {
+      const selectMessages: Message[] = details.map((item) => ({
+        id: item?.id ?? 'error',
+        fileId: item?.file_id ?? '',
+        fileName: item?.file_name ?? '',
+        role: 'assistant',
+        content: item?.summary ?? '',
+        showMenu: true,
+        timestamp: new Date(),
+      }));
+
+      if (selectMessages.length > 0) {
         setMessages(selectMessages);
         setCurrentHistoryId(id);
         setShowTypewriter(false);
@@ -342,6 +354,7 @@ function App() {
               <>
                 {messages.map((message, index) => (
                   <ChatMessage
+                    id={message.id}
                     fileId={message.fileId}
                     fileName={message.fileName}
                     key={`${message.role}-${index}-${message.timestamp?.getTime()}`}

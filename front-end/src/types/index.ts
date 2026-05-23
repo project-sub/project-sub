@@ -6,6 +6,7 @@ import type { User, LoginFormErrors } from './user.types';
 export type MessageRole = 'user' | 'assistant';
 
 export interface Message {
+  id: string;
   fileId: string;
   fileName: string;
   role: MessageRole;
@@ -37,7 +38,8 @@ export interface HistoryItem {
   id: string;
   file_id: string;
   file_name: string;
-  process_at: Date;
+  // process_at: Date;
+  upload_at : Date;
   level: SummaryLevel;
   summary: string;
   messages: Message[];
@@ -74,6 +76,7 @@ export interface AcceptedFileTypes {
  * Component Props Types
  */
 export interface ChatMessageProps {
+  id: string;
   fileId: string;
   fileName: string;
   role: MessageRole;

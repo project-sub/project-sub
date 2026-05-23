@@ -5,6 +5,7 @@ import type { ChatMessageProps } from '../../types';
 import api from '../../api/axios'
 
 export function ChatMessage({
+  id,
   fileId,
   fileName,
   role,

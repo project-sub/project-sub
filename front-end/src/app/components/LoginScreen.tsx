@@ -7,8 +7,6 @@ import { validateLoginCredentials, extractNameFromEmail } from '../../utils/vali
 import api from '../../api/axios'
 import { setToken } from '../../utils/auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
@@ -40,13 +38,28 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   const handleSignup = async (): Promise<void> => {
+    // Validate credentials
+    const validationResult = validateLoginCredentials(credentials);
+
+    if (!validationResult.isValid) {
+      setErrors(validationResult.errors);
+      return;
+    }
+
     const res = await api.post('/register', 
       {email:credentials.email, password:credentials.password},
       {withCredentials:true}
     );
+
     if(res) {
+      alert("회원가입을 환영합니다!!")
+      
       const userName = extractNameFromEmail(credentials.email);
       onLogin({email:credentials.email, name:userName})
+      
+    } else {
+      // 회원가입에 실패했을 경우 이미 존재하는 회원으로 간주한다고 하자 그냥.
+      alert("이미 존재하는 회원입니다. 다른 이메일 주소로 가입바랍니다.")
     }
   }
 

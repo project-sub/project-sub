@@ -2,6 +2,7 @@ import api from './axios';
 import type { HistoryItem, SummaryLevel } from '../types';
 
 export interface UploadResponse {
+  id: string;
   fileId: string;
   fileName: string;
   fileSize: number;
@@ -10,6 +11,7 @@ export interface UploadResponse {
 }
 
 export const requestSummary = async (
+  id: string,
   file: File,
   level: SummaryLevel
 ): Promise<UploadResponse> => {
@@ -22,6 +24,7 @@ export const requestSummary = async (
     detailed: 'LONG',
   };
 
+  formData.append('id', id);
   formData.append('file', file);
   formData.append('length', lengthMap[level]);
   formData.append('style', 'STYLE1');
@@ -37,9 +40,10 @@ export const requestSummary = async (
   return res.data;
 };
 
-export const fetchHistory = async (): Promise<HistoryItem[]> => {
+export const fetchHistory = async (id?:string): Promise<HistoryItem[]> => {
   try {
     const res = await api.get<HistoryItem[]>('/history', {
+      params: id ? { id } : undefined,
       withCredentials: true,
     });
 
@@ -50,9 +54,21 @@ export const fetchHistory = async (): Promise<HistoryItem[]> => {
   }
 };
 
-export const deleteHistory = async (file_id:string): Promise<void> => {
+// export const fetchHistoryDetail = async (id: string): Promise<any[]> => {
+//   try {
+//     const res = await api.get<any[]>(`/history/${id}`, {
+//       withCredentials: true,
+//     });
+//     return res.data; // 백엔드 DocumentRecord 데이터 배열 반환
+//   } catch (e) {
+//     console.error(`상세 이력 조회 실패(id: ${id}):`, e);
+//     return [];
+//   }
+// };
+
+export const deleteHistory = async (id:string): Promise<void> => {
   try {
-      await api.delete(`/delete/${file_id}`, {
+      await api.delete(`/delete/${id}`, {
       withCredentials: true,
     });
   } catch (e) {

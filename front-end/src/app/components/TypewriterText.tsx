@@ -21,7 +21,10 @@ export function TypewriterText({ content, onComplete, speed = 20 }: TypewriterTe
 
   return (
     <ChatMessage
-      role="assistant"
+      id=''
+      fileId=''
+      fileName=''
+      role='assistant'
       content={displayedContent}
       isTyping={currentIndex < content.length}
       showMenu={currentIndex === content.length}

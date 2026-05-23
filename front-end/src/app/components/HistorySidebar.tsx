@@ -5,7 +5,7 @@ import { useState } from 'react';
 interface HistoryItem {
   id: string;
   file_name: string;
-  process_at: Date;
+  upload_at: Date;
   level: 'brief' | 'normal' | 'detailed';
   summary: string;
 }
@@ -130,15 +130,13 @@ export function HistorySidebar({
                         </p>
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-xs px-2 py-0.5 rounded ${
-                              levelColors[item.level]
-                            }`}
+                            className={`text-xs px-2 py-0.5 rounded`}
                           >
-                            {levelLabels[item.level]}
+                            
                           </span>
                           <div className="flex items-center gap-1 text-xs text-gray-500">
                             <Clock className="w-3 h-3" />
-                            <span>{formatDate(item.process_at)}</span>
+                            <span>{formatDate(item.upload_at)}</span>
                           </div>
                         </div>
                       </div>
