@@ -15,7 +15,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 # 도커용
-DATABASE_URL = os.getenv("DB_URL")
+DATABASE_URL=os.getenv('DB_URL')
 
 
 engine = create_engine(DATABASE_URL, echo=True)
@@ -89,9 +89,9 @@ class UserInfo(Base):
 class DocumentRecord(Base):
     __tablename__ = "DOCUMENT_RECORDS"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("USER_INFO.user_id", ondelete="CASCADE"), nullable=False)
-    file_id = Column(UUID(as_uuid=True), nullable=False)
+    file_id = Column(UUID(as_uuid=True), primary_key=True, nullable=False)
     file_name = Column(String(255), nullable=False)
     category = Column(Enum(DocCategory, name="doc_category_enum"),nullable=True)
     summary = Column(Text, nullable=True)
