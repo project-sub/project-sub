@@ -138,22 +138,12 @@ function App() {
           wsRef.current = ws;
 
           ws.onerror = (event: Event) => {
-            console.error('웹소켓 에러:', event);
             setIsProcessing(false);
             alert("웹소켓 연결 오류가 발생했습니다.");
           };
 
-          ws.onclose = (event: CloseEvent) => {
-            console.log('웹소켓 종료:', event.code, event.reason);
-          };
-
-          ws.onopen = (event:Event) => {
-              console.log('$$웹소켓 연결$$');
-          }
-
           ws.onmessage = (event:MessageEvent) => {
             const data = JSON.parse(event.data) as WebhookMessage; //서버에서 메시지 올때마다 실행. json 문자열을 딕셔너리로 변환
-            console.log(`data : ${data}, extractedText:${extractedText}`);
             setIsProcess({
               percent : data.percent,
               state : data.state
@@ -368,7 +358,12 @@ const handleSelectHistory = useCallback(
                   <SummaryLevelSelector onSelect={handleLevelSelect} />
                 )}
 
-                {isProcessing && <TypingIndicator />}
+                {isProcessing && (
+                  <TypingIndicator
+                    percent={isProcess.percent}
+                    state={isProcess.state}
+                   />
+                )}
 
                 {showTypewriter && (
                   <TypewriterText

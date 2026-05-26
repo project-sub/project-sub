@@ -181,120 +181,6 @@ async def websocket_endpoint(
             manager.disconnect(file_id)
             db.close() 
 
-
-# 사용자의 업로드 이력 조회 API
-# @router.get("/history")
-# async def get_user_history(
-#     request:Request,
-#     db: Session = Depends(get_db)
-# ):
-#     user_id =request.session.get("user_id")
-
-#     if not user_id:
-#         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
-    
-#     record = db.query(DocumentRecord).filter(DocumentRecord.user_id)
-    
-#     # 서브쿼리 : 각 id별로 가장 처음(최소 날짜)을 가상 테이블을 구한다.
-#     sidebar_subquery = (
-#         db.query(
-#             DocumentRecord.id,
-#             func.min(DocumentRecord.upload_at).label("first_upload")
-#         )
-#         .filter(DocumentRecord.user_id == user_id)
-#         .group_by(DocumentRecord.id)
-#         .subquery()
-#     )
-
-#     # 본 쿼리(서브쿼리와 조인) : 각 id별 첫번째 게시글의 모든 정보를 가져오는 쿼리
-#     sidebar_origin = (
-#         db.query(DocumentRecord).join(sidebar_subquery, DocumentRecord.id== sidebar_subquery.c.id, DocumentRecord.upload_at == sidebar_subquery.c.first_upload).order_by(DocumentRecord.upload_at.desc()).all()
-#     )
-
-#     if not sidebar_origin:
-#         return []
-
-#     return sidebar_origin
-
-# # history 이력를 눌렀을시의 데이터 API
-# @router.get("/history/{id}")
-# async def get_history_detail(
-#     id: str,
-#     request:Request,
-#     db: Session = Depends(get_db)
-# ):
-#     user_id =request.session.get("user_id")
-
-#     if not user_id:
-#         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
-#     group_id = db.query(DocumentRecord).filter(DocumentRecord.user_id==user_id, DocumentRecord.id== id).all()
-#     return group_id
-
-
-# ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
-# @router.get("/history")
-# async def get_user_history(
-#     request: Request,
-#     db: Session = Depends(get_db)
-# ):
-#     user_id = request.session.get("user_id")
-#     if not user_id:
-#         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
-
-
-#     # record를 체이닝해서 서브쿼리 구성
-#     sidebar_subquery = (
-#         db.query(
-#             DocumentRecord.id,
-#             func.min(DocumentRecord.upload_at).label("first_upload")
-#         )
-#         .filter(DocumentRecord.user_id == user_id)
-#         .group_by(DocumentRecord.id)
-#         .subquery()
-#     )
-
-#     sidebar_origin = (
-#         db.query(DocumentRecord)
-#         .join(
-#             sidebar_subquery,
-#             and_(
-#                 DocumentRecord.id == sidebar_subquery.c.id,
-#                 DocumentRecord.upload_at == sidebar_subquery.c.first_upload
-#             )
-#         )
-#         .filter(DocumentRecord.user_id == user_id)  
-#         .order_by(DocumentRecord.upload_at.desc())
-#         .all()
-#     )
-
-#     if not sidebar_origin:
-#         return []
-#     return sidebar_origin 
-
-
-# @router.get("/history/{id}")
-# async def get_history_detail(
-#     id: str,
-#     request: Request,
-#     db: Session = Depends(get_db)
-# ):
-#     user_id = request.session.get("user_id")
-#     if not user_id:
-#         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
-
-#     # ✅ user_id 먼저, 그 다음 id 필터 (순서 중요)
-#     group_id = (
-#         db.query(DocumentRecord)
-#         .filter(DocumentRecord.user_id == user_id)
-#         .filter(DocumentRecord.id == id)
-#         .order_by(DocumentRecord.upload_at)
-#         .all()
-#     )
-#     return group_id
-
-# ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
 @router.get("/history")
 async def get_user_history(
     request: Request,
@@ -342,8 +228,6 @@ async def get_user_history(
 
     return sidebar_origin or []
 
-#ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
 
 # history로 불러온 것 삭제 기능
 @router.delete("/delete/{id}", status_code=204)
@@ -362,8 +246,6 @@ async def delete_item(request:Request,id:str, db:Session=Depends(get_db)):
     db.commit()
 
     return None
-
-
 
 
 # 결과 파일 다운로드 API (PDF/TXT 선택)

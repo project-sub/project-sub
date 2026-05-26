@@ -35,10 +35,12 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
     try:
 
         # ocr 시작 (10%)
+        
         await manager.send(file_id,{
             "percent": 10,
             "state" : "PROGRESS"
         })
+        await asyncio.sleep(1)
         # ocr 
         extracted_text = await run_in_threadpool(
             process_pdf,
@@ -50,12 +52,12 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
             "state" : "PROGRESS",
             "extracted_text" :  extracted_text
         })
+        await asyncio.sleep(1)
 
         await manager.send(file_id,{
             "percent": 50,
             "state" : "PROGRESS",
         })
-
 
         # llm 
         llm_result= await run_in_threadpool(subtract_text,extracted_text,check_length) # 문자열로 들어옴
@@ -63,10 +65,14 @@ async def process_document(file_id, file_bytes, check_length,db:Session):
         category=llm_result["category"]
         summary = llm_result["summary"]
 
+        # await asyncio.sleep(2)
+
         await manager.send(file_id,{
             "percent": 90,
             "state" : "PROGRESS",
         })
+        await asyncio.sleep(2)
+        
         
         now = datetime.now()
 
