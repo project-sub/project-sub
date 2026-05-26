@@ -54,17 +54,6 @@ export const fetchHistory = async (id?:string): Promise<HistoryItem[]> => {
   }
 };
 
-// export const fetchHistoryDetail = async (id: string): Promise<any[]> => {
-//   try {
-//     const res = await api.get<any[]>(`/history/${id}`, {
-//       withCredentials: true,
-//     });
-//     return res.data; // 백엔드 DocumentRecord 데이터 배열 반환
-//   } catch (e) {
-//     console.error(`상세 이력 조회 실패(id: ${id}):`, e);
-//     return [];
-//   }
-// };
 
 export const deleteHistory = async (id:string): Promise<void> => {
   try {

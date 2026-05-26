@@ -117,6 +117,11 @@ export interface TypewriterTextProps {
   speed?: number;
 }
 
+export interface TypingIndicatorProps {
+  percent?: number;
+  state?: string;
+}
+
 /**
  * App State Types
  */
