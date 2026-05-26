@@ -249,9 +249,9 @@ async def delete_item(request:Request,id:str, db:Session=Depends(get_db)):
 
 
 # 결과 파일 다운로드 API (PDF/TXT 선택)
-@router.get("/download/{id}")
-async def download_file(id:str, format:str, db: Session = Depends(get_db)):
-    record = db.query(DocumentRecord).filter(DocumentRecord.id == id).first()
+@router.get("/download/{fileId}")
+async def download_file(fileId:str, format:str, db: Session = Depends(get_db)):
+    record = db.query(DocumentRecord).filter(DocumentRecord.file_id == fileId ).first()
     if not record:
         raise HTTPException(status_code=404, detail="기록을 찾을 수 없습니다.")
     
