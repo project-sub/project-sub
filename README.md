@@ -14,9 +14,7 @@
 
 ## 🎬 시연 영상
 
-> 아래 영상 파일은 README와 같은 저장소에 업로드하거나, GitHub README 편집 화면에 영상을 드래그 앤 드롭하여 생성된 링크로 교체하면 됩니다.
-
-[시연 영상 보기](./assets/demo.mp4)
+[시연 영상 보기](https://drive.google.com/file/d/187Bhly-W698EuUx_w2FVqpRmA1U8iXxu/view?usp=drive_link)
 
 <!--
 GitHub에 영상을 직접 업로드한 뒤 아래처럼 교체해도 됩니다.
