@@ -281,7 +281,7 @@ docker compose up --build
 | 이름 | 역할 | 담당 |
 | --- | --- | --- |
 | 김상수 | Project Leader / Frontend | 프로젝트 관리, 요구사항 정의, 화면 흐름 설계, React UI 개발 |
-| 김효영 | Backend Developer | FastAPI 서버, 파일 수신, PostgreSQL 연동, API 응답 처리 |
+| 김효영 | Backend Developer | FastAPI 서버 구축, 파일 수신 및 API 설계, PostgreSQL 연동, WebSocket 기반 실시간 상태 전달, asyncio·run_in_threadpool 비동기 처리 |
 | 김의수 | AI & Data Engineering | OCR 파싱, PyMuPDF / PaddleOCR 적용, 텍스트 전처리 |
 | 김진우 | AI & Data Engineering | Ollama LLM 연동, 프롬프트 엔지니어링, 요약 / 분류 로직 |
 
